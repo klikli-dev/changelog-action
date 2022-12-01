@@ -52,6 +52,7 @@ function buildSubject ({ writeToFile, subject, author, authorUrl, owner, repo })
 async function main () {
   const token = core.getInput('token')
   const tag = core.getInput('tag')
+  const mcVersion = core.getInput('mcVersion')
   const fromTag = core.getInput('fromTag')
   const toTag = core.getInput('toTag')
   const excludeTypes = (core.getInput('excludeTypes') || '').split(',').map(t => t.trim())
@@ -73,11 +74,12 @@ async function main () {
     // GET LATEST + PREVIOUS TAGS
 
     core.info(`Using input tag: ${tag}`)
+    core.info(`MC Version Filter: Filtering tags for containing: v${mcVersion}`)
 
     const tagsRaw = await gh.graphql(`
       query lastTags ($owner: String!, $repo: String!) {
         repository (owner: $owner, name: $repo) {
-          refs(first: 2, refPrefix: "refs/tags/", orderBy: { field: TAG_COMMIT_DATE, direction: DESC }) {
+          refs(first: 100, refPrefix: "refs/tags/", orderBy: { field: TAG_COMMIT_DATE, direction: DESC }) {
             nodes {
               name
               target {
@@ -92,8 +94,15 @@ async function main () {
       repo
     })
 
-    latestTag = _.get(tagsRaw, 'repository.refs.nodes[0]')
-    previousTag = _.get(tagsRaw, 'repository.refs.nodes[1]')
+    //core.info(`Raw Tags: ${JSON.stringify(tagsRaw)}`)
+
+    //apply minecraft-specific logic unique to our versioning system to filter for the right branch
+    const filteredTags = tagsRaw.repository.refs.nodes.filter(t => t.name.includes("v"+mcVersion))  
+    
+    //core.info(`Filtered Tags: ${JSON.stringify(filteredTags)}`)
+
+    latestTag = filteredTags[0]
+    previousTag = filteredTags[1]
 
     if (!latestTag) {
       return core.setFailed('Couldn\'t find the latest tag. Make sure you have an existing tag already before creating a new one.')
@@ -103,7 +112,7 @@ async function main () {
     }
 
     if (latestTag.name !== tag) {
-      return core.setFailed(`Provided tag doesn\'t match latest tag ${tag}.`)
+      return core.setFailed(`Provided tag  ${tag} doesn\'t match latest tag ${latestTag.name}.`)
     }
 
     core.info(`Using latest tag: ${latestTag.name}`)

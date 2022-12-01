@@ -8,6 +8,9 @@ inputs:
   tag:
     description: The latest tag (which triggered this job) (only if using latest tag)
     required: false
+  mcVersion:
+    description: The MC version to filter found tags for. e.g. 1.18.2
+    required: true
   fromTag:
     description: The tag from which the changelog is to be determined (only if using tag range)
     required: false
