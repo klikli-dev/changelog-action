@@ -3378,7 +3378,7 @@ exports.endpoint = endpoint;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 
-var request = __nccwpck_require__(3758);
+var request = __nccwpck_require__(6234);
 var universalUserAgent = __nccwpck_require__(5030);
 
 const VERSION = "4.8.0";
@@ -3491,191 +3491,6 @@ function withCustomRequest(customRequest) {
 exports.GraphqlResponseError = GraphqlResponseError;
 exports.graphql = graphql$1;
 exports.withCustomRequest = withCustomRequest;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-
-/***/ 3758:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var endpoint = __nccwpck_require__(9440);
-var universalUserAgent = __nccwpck_require__(5030);
-var isPlainObject = __nccwpck_require__(3287);
-var nodeFetch = _interopDefault(__nccwpck_require__(467));
-var requestError = __nccwpck_require__(537);
-
-const VERSION = "5.6.2";
-
-function getBufferResponse(response) {
-  return response.arrayBuffer();
-}
-
-function fetchWrapper(requestOptions) {
-  const log = requestOptions.request && requestOptions.request.log ? requestOptions.request.log : console;
-
-  if (isPlainObject.isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
-    requestOptions.body = JSON.stringify(requestOptions.body);
-  }
-
-  let headers = {};
-  let status;
-  let url;
-  const fetch = requestOptions.request && requestOptions.request.fetch || nodeFetch;
-  return fetch(requestOptions.url, Object.assign({
-    method: requestOptions.method,
-    body: requestOptions.body,
-    headers: requestOptions.headers,
-    redirect: requestOptions.redirect
-  }, // `requestOptions.request.agent` type is incompatible
-  // see https://github.com/octokit/types.ts/pull/264
-  requestOptions.request)).then(async response => {
-    url = response.url;
-    status = response.status;
-
-    for (const keyAndValue of response.headers) {
-      headers[keyAndValue[0]] = keyAndValue[1];
-    }
-
-    if ("deprecation" in headers) {
-      const matches = headers.link && headers.link.match(/<([^>]+)>; rel="deprecation"/);
-      const deprecationLink = matches && matches.pop();
-      log.warn(`[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${headers.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`);
-    }
-
-    if (status === 204 || status === 205) {
-      return;
-    } // GitHub API returns 200 for HEAD requests
-
-
-    if (requestOptions.method === "HEAD") {
-      if (status < 400) {
-        return;
-      }
-
-      throw new requestError.RequestError(response.statusText, status, {
-        response: {
-          url,
-          status,
-          headers,
-          data: undefined
-        },
-        request: requestOptions
-      });
-    }
-
-    if (status === 304) {
-      throw new requestError.RequestError("Not modified", status, {
-        response: {
-          url,
-          status,
-          headers,
-          data: await getResponseData(response)
-        },
-        request: requestOptions
-      });
-    }
-
-    if (status >= 400) {
-      const data = await getResponseData(response);
-      const error = new requestError.RequestError(toErrorMessage(data), status, {
-        response: {
-          url,
-          status,
-          headers,
-          data
-        },
-        request: requestOptions
-      });
-      throw error;
-    }
-
-    return getResponseData(response);
-  }).then(data => {
-    return {
-      status,
-      url,
-      headers,
-      data
-    };
-  }).catch(error => {
-    if (error instanceof requestError.RequestError) throw error;
-    throw new requestError.RequestError(error.message, 500, {
-      request: requestOptions
-    });
-  });
-}
-
-async function getResponseData(response) {
-  const contentType = response.headers.get("content-type");
-
-  if (/application\/json/.test(contentType)) {
-    return response.json();
-  }
-
-  if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
-    return response.text();
-  }
-
-  return getBufferResponse(response);
-}
-
-function toErrorMessage(data) {
-  if (typeof data === "string") return data; // istanbul ignore else - just in case
-
-  if ("message" in data) {
-    if (Array.isArray(data.errors)) {
-      return `${data.message}: ${data.errors.map(JSON.stringify).join(", ")}`;
-    }
-
-    return data.message;
-  } // istanbul ignore next - just in case
-
-
-  return `Unknown error: ${JSON.stringify(data)}`;
-}
-
-function withDefaults(oldEndpoint, newDefaults) {
-  const endpoint = oldEndpoint.defaults(newDefaults);
-
-  const newApi = function (route, parameters) {
-    const endpointOptions = endpoint.merge(route, parameters);
-
-    if (!endpointOptions.request || !endpointOptions.request.hook) {
-      return fetchWrapper(endpoint.parse(endpointOptions));
-    }
-
-    const request = (route, parameters) => {
-      return fetchWrapper(endpoint.parse(endpoint.merge(route, parameters)));
-    };
-
-    Object.assign(request, {
-      endpoint,
-      defaults: withDefaults.bind(null, endpoint)
-    });
-    return endpointOptions.request.hook(request, endpointOptions);
-  };
-
-  return Object.assign(newApi, {
-    endpoint,
-    defaults: withDefaults.bind(null, endpoint)
-  });
-}
-
-const request = withDefaults(endpoint.endpoint, {
-  headers: {
-    "user-agent": `octokit-request.js/${VERSION} ${universalUserAgent.getUserAgent()}`
-  }
-});
-
-exports.request = request;
 //# sourceMappingURL=index.js.map
 
 
@@ -27966,6 +27781,14 @@ module.exports = require("path");
 
 /***/ }),
 
+/***/ 7282:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("process");
+
+/***/ }),
+
 /***/ 5477:
 /***/ ((module) => {
 
@@ -27979,6 +27802,14 @@ module.exports = require("punycode");
 
 "use strict";
 module.exports = require("stream");
+
+/***/ }),
+
+/***/ 8670:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("timers/promises");
 
 /***/ }),
 
@@ -28080,10 +27911,14 @@ const core = __nccwpck_require__(2186)
 const _ = __nccwpck_require__(250)
 const cc = __nccwpck_require__(4523)
 const fs = (__nccwpck_require__(7147).promises)
+const process = __nccwpck_require__(7282)
+const { setTimeout } = __nccwpck_require__(8670)
+
+const githubServerUrl = process.env.GITHUB_SERVER_URL || 'https://github.com'
 
 const types = [
   { types: ['feat', 'feature'], header: 'New Features', icon: ':sparkles:' },
-  { types: ['fix', 'bugfix'], header: 'Bug Fixes', icon: ':bug:' },
+  { types: ['fix', 'bugfix'], header: 'Bug Fixes', icon: ':bug:', relIssuePrefix: 'fixes' },
   { types: ['perf'], header: 'Performance Improvements', icon: ':zap:' },
   { types: ['refactor'], header: 'Refactors', icon: ':recycle:' },
   { types: ['test', 'tests'], header: 'Tests', icon: ':white_check_mark:' },
@@ -28099,31 +27934,40 @@ const rePrEnding = /\(#([0-9]+)\)$/
 
 function buildSubject ({ writeToFile, subject, author, authorUrl, owner, repo }) {
   const hasPR = rePrEnding.test(subject)
-  let final = subject
+  const prs = []
+  let output = subject
   if (writeToFile) {
+    const authorLine = author ? ` by [@${author}](${authorUrl})` : ''
     if (hasPR) {
       const prMatch = subject.match(rePrEnding)
       const msgOnly = subject.slice(0, prMatch[0].length * -1)
-      final = msgOnly.replace(rePrId, (m, prId) => {
-        return `[#${prId}](https://github.com/${owner}/${repo}/pull/${prId})`
+      output = msgOnly.replace(rePrId, (m, prId) => {
+        prs.push(prId)
+        return `[#${prId}](${githubServerUrl}/${owner}/${repo}/pull/${prId})`
       })
-      final += `*(PR [#${prMatch[1]}](https://github.com/${owner}/${repo}/pull/${prMatch[1]}) by [@${author}](${authorUrl}))*`
+      output += `*(PR [#${prMatch[1]}](${githubServerUrl}/${owner}/${repo}/pull/${prMatch[1]})${authorLine})*`
     } else {
-      final = subject.replace(rePrId, (m, prId) => {
-        return `[#${prId}](https://github.com/${owner}/${repo}/pull/${prId})`
+      output = subject.replace(rePrId, (m, prId) => {
+        return `[#${prId}](${githubServerUrl}/${owner}/${repo}/pull/${prId})`
       })
-      final += ` *(commit by [@${author}](${authorUrl}))*`
+      if (author) {
+        output += ` *(commit by [@${author}](${authorUrl}))*`
+      }
     }
   } else {
     if (hasPR) {
-      final = subject.replace(rePrEnding, (m, prId) => {
-        return `*(PR #${prId} by @${author})*`
+      output = subject.replace(rePrEnding, (m, prId) => {
+        prs.push(prId)
+        return author ? `*(PR #${prId} by @${author})*` : `*(PR #${prId})*`
       })
     } else {
-      final = `${subject} *(commit by @${author})*`
+      output = author ? `${subject} *(commit by @${author})*` : subject
     }
   }
-  return final
+  return {
+    output,
+    prs
+  }
 }
 
 async function main () {
@@ -28134,8 +27978,10 @@ async function main () {
   const toTag = core.getInput('toTag')
   const excludeTypes = (core.getInput('excludeTypes') || '').split(',').map(t => t.trim())
   const writeToFile = core.getBooleanInput('writeToFile')
+  const includeRefIssues = core.getBooleanInput('includeRefIssues')
   const useGitmojis = core.getBooleanInput('useGitmojis')
   const includeInvalidCommits = core.getBooleanInput('includeInvalidCommits')
+  const reverseOrder = core.getBooleanInput('reverseOrder')
   const gh = github.getOctokit(token)
   const owner = github.context.repo.owner
   const repo = github.context.repo.repo
@@ -28243,10 +28089,11 @@ async function main () {
       const cAst = cc.toConventionalChangelogFormat(cc.parser(commit.commit.message))
       commitsParsed.push({
         ...cAst,
+        type: cAst.type.toLowerCase(),
         sha: commit.sha,
         url: commit.html_url,
-        author: commit.author.login,
-        authorUrl: commit.author.html_url
+        author: _.get(commit, 'author.login'),
+        authorUrl: _.get(commit, 'author.html_url')
       })
       for (const note of cAst.notes) {
         if (note.title === 'BREAKING CHANGE') {
@@ -28254,8 +28101,8 @@ async function main () {
             sha: commit.sha,
             url: commit.html_url,
             subject: cAst.subject,
-            author: commit.author.login,
-            authorUrl: commit.author.html_url,
+            author: _.get(commit, 'author.login'),
+            authorUrl: _.get(commit, 'author.html_url'),
             text: note.text
           })
         }
@@ -28268,9 +28115,10 @@ async function main () {
           subject: commit.commit.message,
           sha: commit.sha,
           url: commit.html_url,
-          author: commit.author.login,
-          authorUrl: commit.author.html_url
+          author: _.get(commit, 'author.login'),
+          authorUrl: _.get(commit, 'author.html_url')
         })
+        core.info(`[OK] Commit ${commit.sha} with invalid type, falling back to other - ${commit.commit.message}`)
       } else {
         core.info(`[INVALID] Skipping commit ${commit.sha} as it doesn't follow conventional commit format.`)
       }
@@ -28279,6 +28127,10 @@ async function main () {
 
   if (commitsParsed.length < 1) {
     return core.setFailed('No valid commits parsed since previous tag.')
+  }
+
+  if (reverseOrder) {
+    commitsParsed.reverse()
   }
 
   // BUILD CHANGELOG
@@ -28308,8 +28160,8 @@ async function main () {
         owner,
         repo
       })
-      changesFile.push(`- due to [\`${breakChange.sha.substring(0, 7)}\`](${breakChange.url}) - ${subjectFile}:\n\n${body}\n`)
-      changesVar.push(`- due to [\`${breakChange.sha.substring(0, 7)}\`](${breakChange.url}) - ${subjectVar}:\n\n${body}\n`)
+      changesFile.push(`- due to [\`${breakChange.sha.substring(0, 7)}\`](${breakChange.url}) - ${subjectFile.output}:\n\n${body}\n`)
+      changesVar.push(`- due to [\`${breakChange.sha.substring(0, 7)}\`](${breakChange.url}) - ${subjectVar.output}:\n\n${body}\n`)
     }
     idx++
   }
@@ -28328,6 +28180,9 @@ async function main () {
     }
     changesFile.push(useGitmojis ? `### ${type.icon} ${type.header}` : `### ${type.header}`)
     changesVar.push(useGitmojis ? `### ${type.icon} ${type.header}` : `### ${type.header}`)
+
+    const relIssuePrefix = type.relIssuePrefix || 'addresses'
+
     for (const commit of matchingCommits) {
       const scope = commit.scope ? `**${commit.scope}**: ` : ''
       const subjectFile = buildSubject({
@@ -28346,8 +28201,51 @@ async function main () {
         owner,
         repo
       })
-      changesFile.push(`- [\`${commit.sha.substring(0, 7)}\`](${commit.url}) - ${scope}${subjectFile}`)
-      changesVar.push(`- [\`${commit.sha.substring(0, 7)}\`](${commit.url}) - ${scope}${subjectVar}`)
+      changesFile.push(`- [\`${commit.sha.substring(0, 7)}\`](${commit.url}) - ${scope}${subjectFile.output}`)
+      changesVar.push(`- [\`${commit.sha.substring(0, 7)}\`](${commit.url}) - ${scope}${subjectVar.output}`)
+
+      if (includeRefIssues && subjectVar.prs.length > 0) {
+        for (const prId of subjectVar.prs) {
+          core.info(`Querying related issues for PR ${prId}...`)
+          await setTimeout(500) // Make sure we don't go over GitHub API rate limits
+          try {
+            const issuesRaw = await gh.graphql(`
+              query relIssues ($owner: String!, $repo: String!, $prId: Int!) {
+                repository (owner: $owner, name: $repo) {
+                  pullRequest(number: $prId) {
+                    closingIssuesReferences(first: 50) {
+                      nodes {
+                        number
+                        author {
+                          login
+                          url
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `, {
+              owner,
+              repo,
+              prId: parseInt(prId)
+            })
+            const relIssues = _.get(issuesRaw, 'repository.pullRequest.closingIssuesReferences.nodes')
+            for (const relIssue of relIssues) {
+              const authorLogin = _.get(relIssue, 'author.login')
+              if (authorLogin) {
+                changesFile.push(`  - :arrow_lower_right: *${relIssuePrefix} issue [#${relIssue.number}](${relIssue.url}) opened by [@${authorLogin}](${relIssue.author.url})*`)
+                changesVar.push(`  - :arrow_lower_right: *${relIssuePrefix} issue #${relIssue.number} opened by @${authorLogin}*`)
+              } else {
+                changesFile.push(`  - :arrow_lower_right: *${relIssuePrefix} issue [#${relIssue.number}](${relIssue.url})*`)
+                changesVar.push(`  - :arrow_lower_right: *${relIssuePrefix} issue #${relIssue.number}*`)
+              }
+            }
+          } catch (err) {
+            core.warning(`Failed to query issues related to PR ${prId}. Skipping.`)
+          }
+        }
+      }
     }
     idx++
   }
@@ -28399,7 +28297,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   if (firstVersionLine < lines.length) {
     output += '\n' + lines.slice(firstVersionLine).join('\n')
   }
-  output += `\n[${latestTag.name}]: https://github.com/${owner}/${repo}/compare/${previousTag.name}...${latestTag.name}`
+  output += `\n[${latestTag.name}]: ${githubServerUrl}/${owner}/${repo}/compare/${previousTag.name}...${latestTag.name}`
 
   // WRITE CHANGELOG TO FILE
 

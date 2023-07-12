@@ -3,10 +3,14 @@ const core = require('@actions/core')
 const _ = require('lodash')
 const cc = require('@conventional-commits/parser')
 const fs = require('fs').promises
+const process = require('process')
+const { setTimeout } = require('timers/promises')
+
+const githubServerUrl = process.env.GITHUB_SERVER_URL || 'https://github.com'
 
 const types = [
   { types: ['feat', 'feature'], header: 'New Features', icon: ':sparkles:' },
-  { types: ['fix', 'bugfix'], header: 'Bug Fixes', icon: ':bug:' },
+  { types: ['fix', 'bugfix'], header: 'Bug Fixes', icon: ':bug:', relIssuePrefix: 'fixes' },
   { types: ['perf'], header: 'Performance Improvements', icon: ':zap:' },
   { types: ['refactor'], header: 'Refactors', icon: ':recycle:' },
   { types: ['test', 'tests'], header: 'Tests', icon: ':white_check_mark:' },
@@ -22,31 +26,40 @@ const rePrEnding = /\(#([0-9]+)\)$/
 
 function buildSubject ({ writeToFile, subject, author, authorUrl, owner, repo }) {
   const hasPR = rePrEnding.test(subject)
-  let final = subject
+  const prs = []
+  let output = subject
   if (writeToFile) {
+    const authorLine = author ? ` by [@${author}](${authorUrl})` : ''
     if (hasPR) {
       const prMatch = subject.match(rePrEnding)
       const msgOnly = subject.slice(0, prMatch[0].length * -1)
-      final = msgOnly.replace(rePrId, (m, prId) => {
-        return `[#${prId}](https://github.com/${owner}/${repo}/pull/${prId})`
+      output = msgOnly.replace(rePrId, (m, prId) => {
+        prs.push(prId)
+        return `[#${prId}](${githubServerUrl}/${owner}/${repo}/pull/${prId})`
       })
-      final += `*(PR [#${prMatch[1]}](https://github.com/${owner}/${repo}/pull/${prMatch[1]}) by [@${author}](${authorUrl}))*`
+      output += `*(PR [#${prMatch[1]}](${githubServerUrl}/${owner}/${repo}/pull/${prMatch[1]})${authorLine})*`
     } else {
-      final = subject.replace(rePrId, (m, prId) => {
-        return `[#${prId}](https://github.com/${owner}/${repo}/pull/${prId})`
+      output = subject.replace(rePrId, (m, prId) => {
+        return `[#${prId}](${githubServerUrl}/${owner}/${repo}/pull/${prId})`
       })
-      final += ` *(commit by [@${author}](${authorUrl}))*`
+      if (author) {
+        output += ` *(commit by [@${author}](${authorUrl}))*`
+      }
     }
   } else {
     if (hasPR) {
-      final = subject.replace(rePrEnding, (m, prId) => {
-        return `*(PR #${prId} by @${author})*`
+      output = subject.replace(rePrEnding, (m, prId) => {
+        prs.push(prId)
+        return author ? `*(PR #${prId} by @${author})*` : `*(PR #${prId})*`
       })
     } else {
-      final = `${subject} *(commit by @${author})*`
+      output = author ? `${subject} *(commit by @${author})*` : subject
     }
   }
-  return final
+  return {
+    output,
+    prs
+  }
 }
 
 async function main () {
@@ -57,8 +70,10 @@ async function main () {
   const toTag = core.getInput('toTag')
   const excludeTypes = (core.getInput('excludeTypes') || '').split(',').map(t => t.trim())
   const writeToFile = core.getBooleanInput('writeToFile')
+  const includeRefIssues = core.getBooleanInput('includeRefIssues')
   const useGitmojis = core.getBooleanInput('useGitmojis')
   const includeInvalidCommits = core.getBooleanInput('includeInvalidCommits')
+  const reverseOrder = core.getBooleanInput('reverseOrder')
   const gh = github.getOctokit(token)
   const owner = github.context.repo.owner
   const repo = github.context.repo.repo
@@ -166,10 +181,11 @@ async function main () {
       const cAst = cc.toConventionalChangelogFormat(cc.parser(commit.commit.message))
       commitsParsed.push({
         ...cAst,
+        type: cAst.type.toLowerCase(),
         sha: commit.sha,
         url: commit.html_url,
-        author: commit.author.login,
-        authorUrl: commit.author.html_url
+        author: _.get(commit, 'author.login'),
+        authorUrl: _.get(commit, 'author.html_url')
       })
       for (const note of cAst.notes) {
         if (note.title === 'BREAKING CHANGE') {
@@ -177,8 +193,8 @@ async function main () {
             sha: commit.sha,
             url: commit.html_url,
             subject: cAst.subject,
-            author: commit.author.login,
-            authorUrl: commit.author.html_url,
+            author: _.get(commit, 'author.login'),
+            authorUrl: _.get(commit, 'author.html_url'),
             text: note.text
           })
         }
@@ -191,9 +207,10 @@ async function main () {
           subject: commit.commit.message,
           sha: commit.sha,
           url: commit.html_url,
-          author: commit.author.login,
-          authorUrl: commit.author.html_url
+          author: _.get(commit, 'author.login'),
+          authorUrl: _.get(commit, 'author.html_url')
         })
+        core.info(`[OK] Commit ${commit.sha} with invalid type, falling back to other - ${commit.commit.message}`)
       } else {
         core.info(`[INVALID] Skipping commit ${commit.sha} as it doesn't follow conventional commit format.`)
       }
@@ -202,6 +219,10 @@ async function main () {
 
   if (commitsParsed.length < 1) {
     return core.setFailed('No valid commits parsed since previous tag.')
+  }
+
+  if (reverseOrder) {
+    commitsParsed.reverse()
   }
 
   // BUILD CHANGELOG
@@ -231,8 +252,8 @@ async function main () {
         owner,
         repo
       })
-      changesFile.push(`- due to [\`${breakChange.sha.substring(0, 7)}\`](${breakChange.url}) - ${subjectFile}:\n\n${body}\n`)
-      changesVar.push(`- due to [\`${breakChange.sha.substring(0, 7)}\`](${breakChange.url}) - ${subjectVar}:\n\n${body}\n`)
+      changesFile.push(`- due to [\`${breakChange.sha.substring(0, 7)}\`](${breakChange.url}) - ${subjectFile.output}:\n\n${body}\n`)
+      changesVar.push(`- due to [\`${breakChange.sha.substring(0, 7)}\`](${breakChange.url}) - ${subjectVar.output}:\n\n${body}\n`)
     }
     idx++
   }
@@ -251,6 +272,9 @@ async function main () {
     }
     changesFile.push(useGitmojis ? `### ${type.icon} ${type.header}` : `### ${type.header}`)
     changesVar.push(useGitmojis ? `### ${type.icon} ${type.header}` : `### ${type.header}`)
+
+    const relIssuePrefix = type.relIssuePrefix || 'addresses'
+
     for (const commit of matchingCommits) {
       const scope = commit.scope ? `**${commit.scope}**: ` : ''
       const subjectFile = buildSubject({
@@ -269,8 +293,51 @@ async function main () {
         owner,
         repo
       })
-      changesFile.push(`- [\`${commit.sha.substring(0, 7)}\`](${commit.url}) - ${scope}${subjectFile}`)
-      changesVar.push(`- [\`${commit.sha.substring(0, 7)}\`](${commit.url}) - ${scope}${subjectVar}`)
+      changesFile.push(`- [\`${commit.sha.substring(0, 7)}\`](${commit.url}) - ${scope}${subjectFile.output}`)
+      changesVar.push(`- [\`${commit.sha.substring(0, 7)}\`](${commit.url}) - ${scope}${subjectVar.output}`)
+
+      if (includeRefIssues && subjectVar.prs.length > 0) {
+        for (const prId of subjectVar.prs) {
+          core.info(`Querying related issues for PR ${prId}...`)
+          await setTimeout(500) // Make sure we don't go over GitHub API rate limits
+          try {
+            const issuesRaw = await gh.graphql(`
+              query relIssues ($owner: String!, $repo: String!, $prId: Int!) {
+                repository (owner: $owner, name: $repo) {
+                  pullRequest(number: $prId) {
+                    closingIssuesReferences(first: 50) {
+                      nodes {
+                        number
+                        author {
+                          login
+                          url
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `, {
+              owner,
+              repo,
+              prId: parseInt(prId)
+            })
+            const relIssues = _.get(issuesRaw, 'repository.pullRequest.closingIssuesReferences.nodes')
+            for (const relIssue of relIssues) {
+              const authorLogin = _.get(relIssue, 'author.login')
+              if (authorLogin) {
+                changesFile.push(`  - :arrow_lower_right: *${relIssuePrefix} issue [#${relIssue.number}](${relIssue.url}) opened by [@${authorLogin}](${relIssue.author.url})*`)
+                changesVar.push(`  - :arrow_lower_right: *${relIssuePrefix} issue #${relIssue.number} opened by @${authorLogin}*`)
+              } else {
+                changesFile.push(`  - :arrow_lower_right: *${relIssuePrefix} issue [#${relIssue.number}](${relIssue.url})*`)
+                changesVar.push(`  - :arrow_lower_right: *${relIssuePrefix} issue #${relIssue.number}*`)
+              }
+            }
+          } catch (err) {
+            core.warning(`Failed to query issues related to PR ${prId}. Skipping.`)
+          }
+        }
+      }
     }
     idx++
   }
@@ -322,7 +389,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   if (firstVersionLine < lines.length) {
     output += '\n' + lines.slice(firstVersionLine).join('\n')
   }
-  output += `\n[${latestTag.name}]: https://github.com/${owner}/${repo}/compare/${previousTag.name}...${latestTag.name}`
+  output += `\n[${latestTag.name}]: ${githubServerUrl}/${owner}/${repo}/compare/${previousTag.name}...${latestTag.name}`
 
   // WRITE CHANGELOG TO FILE
 
