@@ -21,10 +21,22 @@ inputs:
     description: Types to exclude from the Changelog
     required: false
     default: build,docs,other,style
+  excludeScopes:
+    description: Scopes to exclude from the Changelog
+    required: false
+    default: ''
+  restrictToTypes:
+    description: Types to restrict to for the Changelog (overrides excludeTypes if defined)
+    required: false
+    default: ''
   writeToFile:
     description: Should CHANGELOG.md be updated with latest changelog
     required: false
     default: 'true'
+  changelogFilePath:
+    description: Path to the changelog file
+    required: false
+    default: 'CHANGELOG.md'
   includeRefIssues:
     description: Should the changelog include the issues referenced for each PR.
     required: false
@@ -42,10 +54,10 @@ inputs:
     required: false
     default: 'false'
 outputs:
-  changelog:
+  changes:
     description: Generated changelog
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'
 branding:
   icon: wind

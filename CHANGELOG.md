@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.10.2] - 2024-04-25
+### :bug: Bug Fixes
+- [`6d71e09`](https://github.com/requarks/changelog-action/commit/6d71e098526ee17bae963f058d34cd763378337f) - add end of file return to changelog file *(PR [#56](https://github.com/requarks/changelog-action/pull/56) by [@sjpalf](https://github.com/sjpalf))*
+  - :arrow_lower_right: *fixes issue [#54](https://github.com/requarks/changelog-action/issues/54) opened by [@leezero-carbon](https://github.com/leezero-carbon)*
+
+
+## [v1.10.1] - 2024-02-06
+### :bug: Bug Fixes
+- [`4a2c34a`](https://github.com/requarks/changelog-action/commit/4a2c34a1a8fcfa9e48e61960aad0affc15066393) - incorrect related issue URL in file-based changelog output *(commit by [@NGPixel](https://github.com/NGPixel))*
+
+
+## [v1.10.0] - 2024-01-16
+### :sparkles: New Features
+- [`6f10593`](https://github.com/requarks/changelog-action/commit/6f105938d7e03ad300949d064c6ccf739e79a3d0) - add changelogFilePath option *(PR [#44](https://github.com/requarks/changelog-action/pull/44) by [@kiyoon](https://github.com/kiyoon))*
+
+
+## [v1.9.0] - 2023-09-26
+### :sparkles: New Features
+- [`dba389d`](https://github.com/requarks/changelog-action/commit/dba389d510fcf5b8327fe14221b569489dec425d) - add excludeScopes + restrictToTypes options *(commit by [@NGPixel](https://github.com/NGPixel))*
+
+### :bug: Bug Fixes
+- [`1fabc7b`](https://github.com/requarks/changelog-action/commit/1fabc7b0c6581d93c398246a856f084fb17cd9eb) - omit empty type exclusions *(commit by [@NGPixel](https://github.com/NGPixel))*
+
+
+## [v1.8.2] - 2023-09-05
+### :bug: Bug Fixes
+- [`19f583f`](https://github.com/requarks/changelog-action/commit/19f583f53722c093319992282c8efb8a956efd64) - action.yml output name *(PR [#30](https://github.com/requarks/changelog-action/pull/30) by [@cupofme](https://github.com/cupofme))*
+  - :arrow_lower_right: *fixes issue [#29](undefined) opened by [@cupofme](https://github.com/cupofme)*
+
+
 ## [v1.8.1] - 2023-06-12
 ### :bug: Bug Fixes
 - [`cb9cac1`](https://github.com/requarks/changelog-action/commit/cb9cac16822feb7033a12db5731511e82f106d5c) - handle related PR issues query failures *(commit by [@NGPixel](https://github.com/NGPixel))*
@@ -99,3 +129,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [v1.7.0]: https://github.com/requarks/changelog-action/compare/v1.6.0...v1.7.0
 [v1.8.0]: https://github.com/requarks/changelog-action/compare/v1.7.0...v1.8.0
 [v1.8.1]: https://github.com/requarks/changelog-action/compare/v1.8.0...v1.8.1
+[v1.8.2]: https://github.com/requarks/changelog-action/compare/v1.8.1...v1.8.2
+[v1.9.0]: https://github.com/requarks/changelog-action/compare/v1.8.2...v1.9.0
+[v1.10.0]: https://github.com/requarks/changelog-action/compare/v1.9.0...v1.10.0
+[v1.10.1]: https://github.com/requarks/changelog-action/compare/v1.10.0...v1.10.1
+[v1.10.2]: https://github.com/requarks/changelog-action/compare/v1.10.1...v1.10.2
